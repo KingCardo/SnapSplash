@@ -13,7 +13,21 @@ struct ContentView: View {
     @State private var image: UIImage?
     @State private var isImagePickerShown = false
     @State private var filterIntensity = 0.5
+    @State private var selectedFilterIndex = 0
     
+    private let filterNames = [
+        "CIPhotoEffectChrome",
+        "CIPhotoEffectFade",
+        "CIPhotoEffectInstant",
+        "CIPhotoEffectMono",
+        "CIPhotoEffectNoir",
+        "CIPhotoEffectProcess",
+        "CIPhotoEffectTonal",
+        "CIPhotoEffectTransfer",
+        "CISepiaTone",
+        "CIVignette"
+    ]
+
     var body: some View {
         VStack {
             if let image = image {
@@ -23,17 +37,24 @@ struct ContentView: View {
             } else {
                 Text("Select an image to edit")
             }
-            
+
             Button("Choose Image") {
                 isImagePickerShown = true
             }
-            
+
+            Picker("Select Filter", selection: $selectedFilterIndex) {
+                ForEach(0..<filterNames.count) { index in
+                    Text(filterNames[index]).tag(index)
+                }
+            }
+            .pickerStyle(MenuPickerStyle())
+
             Slider(value: $filterIntensity, in: 0...1)
-            
+
             Button("Apply Filter") {
                 applyFilter()
             }
-            
+
             Button("Save Image") {
                 saveImage()
             }
@@ -45,16 +66,21 @@ struct ContentView: View {
     
     func applyFilter() {
         guard let inputImage = CIImage(image: image!) else { return }
-        let filter = CIFilter(name: "CISepiaTone")
+        let filterName = filterNames[selectedFilterIndex]
+        let filter = CIFilter(name: filterName)
         filter?.setValue(inputImage, forKey: kCIInputImageKey)
-        filter?.setValue(filterIntensity, forKey: kCIInputIntensityKey)
-        
+
+        if filterName == "CISepiaTone" || filterName == "CIVignette" {
+            filter?.setValue(filterIntensity, forKey: kCIInputIntensityKey)
+        }
+
         guard let outputImage = filter?.outputImage else { return }
         let context = CIContext()
         guard let cgImage = context.createCGImage(outputImage, from: outputImage.extent) else { return }
         let uiImage = UIImage(cgImage: cgImage)
         image = uiImage
     }
+
     
     func saveImage() {
         guard let imageToSave = image else { return }
